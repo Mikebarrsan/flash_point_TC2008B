@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://https://semver.org/spe
 
 - Changelog Actualizado (19/08/2024).
 - Se actualiza North Area y se añaden esferas (19/08/2024).
+- Se actualiza South Area y se agregan cilindros (19/08/2024).
 
 ### Changed
 
