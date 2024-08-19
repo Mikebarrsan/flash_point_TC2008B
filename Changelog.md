@@ -16,3 +16,4 @@ and this project adheres to [Semantic Versioning](https://https://semver.org/spe
     - Creación de prefabs.
     - Update North Prefab.
 - Se agrega changelog al proyecto (19/08/2024).
+- Se sube plantilla PR (19/08/2024).
