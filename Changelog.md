@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://https://semver.org/spe
 ### Added
 
 - Changelog Actualizado (19/08/2024).
+- Creación de jupyter Notebook (19/082024).
 
 ### Changed
 
