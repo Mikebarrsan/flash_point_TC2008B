@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://https://semver.org/spe
 ### Added
 
 - Changelog Actualizado (19/08/2024).
-- Creación de jupyter Notebook (19/082024).
+- Creación de jupyter Notebook (19/08/2024).
+- Agregar modelos 3D de fuego, humo, bombero y paredes con texturas y colores (01/09/2024).
 
 ### Changed
 
