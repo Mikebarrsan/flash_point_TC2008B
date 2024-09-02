@@ -3,6 +3,6 @@
 public class Map
 {
     public string[][][] walls;
-    public int[][] fires;
+    public int [][] fires;
 }
 

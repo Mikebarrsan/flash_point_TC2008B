@@ -9,39 +9,15 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Networking;
 using Newtonsoft.Json;
+using TMPro;
 
 public class WebClient : MonoBehaviour
 {
     public GameObject RoomPrefab;
+    public GameObject FirePrefab;
+    public GameObject SmokePrefab;
     public GameObject RoomHolder;
-    IEnumerator SendData(string data)
-    {
-        WWWForm form = new WWWForm();
-        form.AddField("bundle", "the data");
-        string url = "http://localhost:8585";
-        using (UnityWebRequest www = UnityWebRequest.Post(url, form))
-        {
-            byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(data);
-            www.uploadHandler = new UploadHandlerRaw(bodyRaw);
-            www.downloadHandler = new DownloadHandlerBuffer();
-            //www.SetRequestHeader("Content-Type", "text/html");
-            www.SetRequestHeader("Content-Type", "application/json");
-
-            yield return www.SendWebRequest();          // Talk to Python
-            if ((www.result == UnityWebRequest.Result.ConnectionError) || (www.result == UnityWebRequest.Result.ProtocolError))
-            {
-                Debug.Log(www.error);
-            }
-            else
-            {
-                Debug.Log(www.downloadHandler.text);    // Answer from Python
-                Vector3 tPos = JsonUtility.FromJson<Vector3>(www.downloadHandler.text.Replace('\'', '\"'));
-                //Debug.Log("Form upload complete!");
-                Debug.Log(tPos);
-            }
-        }
-
-    }
+    public GameObject FireHolder;
 
     IEnumerator getMap()
     {
@@ -59,18 +35,15 @@ public class WebClient : MonoBehaviour
             }
             else
             {
-                Debug.Log(www.downloadHandler.text);
                 Map mapa = JsonConvert.DeserializeObject<Map>(www.downloadHandler.text.Replace('\'', '\"'));
-
-                Debug.Log("Walls:");
                 for (int i = 0; i < mapa.walls.Length; i++)
                 {
                     for (int j = 0; j < mapa.walls[i].Length; j++)
                     {
-                        GameObject room = Instantiate(RoomPrefab, new Vector3(j, 0, i), Quaternion.identity, RoomHolder.transform);
+                        GameObject room = Instantiate(RoomPrefab, new Vector3(j * -1, 0, i), Quaternion.identity, RoomHolder.transform);
                         for (int k = 0; k < mapa.walls[i][j].Length; k++)
                         {
-                            if (Convert.ToString(mapa.walls[i][j][k]) == "0" | Convert.ToString(mapa.walls[i][j][k]) == "1")
+                            if (Convert.ToString(mapa.walls[i][j][k]) == "1" | Convert.ToString(mapa.walls[i][j][k]) == "2")
                             {
                                 if (k == 0)
                                 {
@@ -92,17 +65,22 @@ public class WebClient : MonoBehaviour
                                     Transform wall = room.transform.Find("Left");
                                     wall.gameObject.SetActive(true);
                                 }
+                            }else if (Convert.ToString(mapa.walls[i][j][k]) == "door"){
+                                //Cambiar modelo de pared por puerta
+                            }else if (Convert.ToString(mapa.walls[i][j][k]) == "entrance"){
+                                //Cambiar el modelo de pared por puerta
                             }
                         }
                     }
                 }
-
-                Debug.Log("Fires:");
+                
                 for (int i = 0; i < mapa.fires.Length; i++)
                 {
                     for (int j = 0; j < mapa.fires[i].Length; j++)
                     {
-                        Debug.Log("fires[" + i + "][" + j + "]: " + mapa.fires[i][j]);
+                        if(mapa.fires[i][j] == 2){
+                            Instantiate(FirePrefab, new Vector3(j * -1, 0, i), Quaternion.identity, FireHolder.transform);
+                        }
                     }
                 }
             }
@@ -127,6 +105,17 @@ public class WebClient : MonoBehaviour
             else
             {
                 Debug.Log(www.downloadHandler.text);
+                Moves resp = JsonConvert.DeserializeObject<Moves>(www.downloadHandler.text.Replace('\'', '\"'));
+                for (int i = 0; i < resp.moves.Length; i++)
+                {
+                    for (int j = 0; j < resp.moves[i].Length; j++)
+                    {
+                        Debug.Log("[" + i + "] [" + j + "]" + resp.moves[i][j]);
+                        // if(resp.moves[i][j] == 2){
+                        //     Instantiate(FirePrefab, new Vector3(j * -1, 0, i), Quaternion.identity, FireHolder.transform);
+                        // }
+                    }
+                }
             }
         }
 
@@ -136,6 +125,7 @@ public class WebClient : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        StartCoroutine(getMap());
         //string call = "What's up?";
         //Vector3 fakePos = new Vector3(3.44f, 0, -15.707f);
         //string json = EditorJsonUtility.ToJson(fakePos);
@@ -150,10 +140,6 @@ public class WebClient : MonoBehaviour
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Space))
-        {
-            StartCoroutine(getMap());
-        }
-        else if (Input.GetKeyDown(KeyCode.LeftShift))
         {
             StartCoroutine(getStep());
         }
