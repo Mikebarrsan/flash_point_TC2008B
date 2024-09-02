@@ -275,7 +275,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   RoomPrefab: {fileID: 6153966915243451197, guid: 51ef88074b6a862438a97849e1bc2fef, type: 3}
-  FirePrefab: {fileID: 8816015674896984455, guid: 435f225bc6a01214f92fcb11a200c371, type: 3}
+  FirePrefab: {fileID: 826595409064218564, guid: ac18a28d745dc47dbbe05a6b3670b9e2, type: 3}
+  SmokePrefab: {fileID: 0}
   RoomHolder: {fileID: 242039077}
   FireHolder: {fileID: 786097767}
 --- !u!4 &469464383
