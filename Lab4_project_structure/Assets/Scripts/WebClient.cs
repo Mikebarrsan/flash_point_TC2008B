@@ -79,7 +79,7 @@ public class WebClient : MonoBehaviour
                     for (int j = 0; j < mapa.fires[i].Length; j++)
                     {
                         if(mapa.fires[i][j] == 2){
-                            Instantiate(FirePrefab, new Vector3(j * -1, 0, i), Quaternion.identity, FireHolder.transform);
+                            Instantiate(FirePrefab, new Vector3(j * -1, 0, i), Quaternion.Euler(-90, 0, 0), FireHolder.transform);
                         }
                     }
                 }
