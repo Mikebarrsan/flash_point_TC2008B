@@ -14,10 +14,13 @@ using UnityEngine.SceneManagement;
 public class WebClient : MonoBehaviour
 {
     public GameObject RoomPrefab;
+    public GameObject DestroyedPrefab;
+    public GameObject DoorPrefab;
     public GameObject FirePrefab;
     public GameObject SmokePrefab;
     public GameObject RoomHolder;
     public GameObject FireHolder;
+    private string[] direction = {"Up", "Right", "Down","Left"};
 
     IEnumerator getMap()
     {
@@ -35,6 +38,7 @@ public class WebClient : MonoBehaviour
             }
             else
             {
+                Debug.Log(www.downloadHandler.text);
                 Map mapa = JsonConvert.DeserializeObject<Map>(www.downloadHandler.text.Replace('\'', '\"'));
                 for (int i = 0; i < mapa.walls.Length; i++)
                 {
@@ -45,30 +49,10 @@ public class WebClient : MonoBehaviour
                         {
                             if (Convert.ToString(mapa.walls[i][j][k]) == "1" | Convert.ToString(mapa.walls[i][j][k]) == "2")
                             {
-                                if (k == 0)
-                                {
-                                    Transform wall = room.transform.Find("Up");
-                                    wall.gameObject.SetActive(true);
-                                }
-                                else if (k == 1)
-                                {
-                                    Transform wall = room.transform.Find("Right");
-                                    wall.gameObject.SetActive(true);
-                                }
-                                else if (k == 2)
-                                {
-                                    Transform wall = room.transform.Find("Down");
-                                    wall.gameObject.SetActive(true);
-                                }
-                                else if (k == 3)
-                                {
-                                    Transform wall = room.transform.Find("Left");
-                                    wall.gameObject.SetActive(true);
-                                }
-                            }else if (Convert.ToString(mapa.walls[i][j][k]) == "door"){
-                                //Cambiar modelo de pared por puerta
-                            }else if (Convert.ToString(mapa.walls[i][j][k]) == "entrance"){
-                                //Cambiar el modelo de pared por puerta
+                                Transform wall = room.transform.Find(direction[k]);
+                                wall.gameObject.SetActive(true);
+                            }else if (Convert.ToString(mapa.walls[i][j][k]) == "door" | Convert.ToString(mapa.walls[i][j][k]) == "entrance"){
+                                ReplaceWall(k, room, DoorPrefab);
                             }
                         }
                     }
@@ -79,7 +63,7 @@ public class WebClient : MonoBehaviour
                     for (int j = 0; j < mapa.fires[i].Length; j++)
                     {
                         if(mapa.fires[i][j] == 2){
-                            Instantiate(FirePrefab, new Vector3(j * -1, 0, i), Quaternion.Euler(-90, 0, 0), FireHolder.transform);
+                            Instantiate(FirePrefab, new Vector3(j * -1, 0, i), Quaternion.Euler(-90,0,0), FireHolder.transform);
                         }
                     }
                 }
@@ -114,25 +98,47 @@ public class WebClient : MonoBehaviour
 
                     if (resp.moves[i][0] == "fire"){
                         Collider[] intersecting = Physics.OverlapSphere(new Vector3(x, 0, z), 0.01f);
-                        if (intersecting.Length == 0) {
-                            Instantiate(FirePrefab, new Vector3(x, 0, z), Quaternion.Euler(-90,0,0), FireHolder.transform);
-                        }else{
-                            Destroy(intersecting[0].gameObject);
-                            Instantiate(FirePrefab, new Vector3(x, 0, z), Quaternion.Euler(-90,0,0), FireHolder.transform);
+                        for (int j = 0; j < intersecting.Length; j++) {
+                            if (intersecting[j].gameObject.name == "Room(Clone)"){
+                                Instantiate(FirePrefab, new Vector3(x, 0, z), Quaternion.Euler(-90,0,0), FireHolder.transform);
+                            }else{
+                                Destroy(intersecting[j].gameObject);
+                            }
                         }
                     }else if (resp.moves[i][0] == "smoke"){
-                        Instantiate(SmokePrefab, new Vector3(x, 0, z), Quaternion.identity, FireHolder.transform);
+                        Instantiate(SmokePrefab, new Vector3(x, 0, z), Quaternion.Euler(-90,0,0), FireHolder.transform);
                     }else if (resp.moves[i][0] == "explosion"){
-                        Debug.Log("Explosión en " + resp.moves[i][1] + ", " + resp.moves[i][2]);
+
                     }else if (resp.moves[i][0] == "flashover"){
                         if (!delay){
                             yield return new WaitForSeconds(2.0f);
-                            Debug.Log("Espero 2 segs");
                             delay = true;
                         }
                         Collider[] intersecting = Physics.OverlapSphere(new Vector3(x, 0, z), 0.01f);
                         Destroy(intersecting[0].gameObject);
                         Instantiate(FirePrefab, new Vector3(x, 0, z), Quaternion.Euler(-90,0,0), FireHolder.transform);
+                    }else if (resp.moves[i][0] == "door"){
+                        Collider[] intersecting = Physics.OverlapSphere(new Vector3(x, 0, z), 0.1f);
+                        for (int j = 0; j < intersecting.Length; j++) {
+                            if (intersecting[j].gameObject.name == "Room(Clone)"){
+                                Transform door = intersecting[j].transform.Find(direction[int.Parse(resp.moves[i][3])]);
+                                Destroy(door.gameObject);
+                            }
+                        }
+                        //["door", pos[0], pos[1], direction]
+                    }else if (resp.moves[i][0] == "wall"){
+                        Collider[] intersecting = Physics.OverlapSphere(new Vector3(x, 0, z), 0.1f);
+                        for (int j = 0; j < intersecting.Length; j++) {
+                            if (intersecting[j].gameObject.name == "Room(Clone)"){
+                                if (int.Parse(resp.moves[i][4]) == 1){
+                                    ReplaceWall(int.Parse(resp.moves[i][3]), intersecting[j].gameObject, DestroyedPrefab);
+                                }else{
+                                    Transform door = intersecting[j].transform.Find(direction[int.Parse(resp.moves[i][3])]);
+                                    Destroy(door.gameObject);
+                                }
+                            }
+                        }
+                        // ["wall", pos[0], pos[1], direction, self.walls_grid[pos[0], pos[1]][direction]]
                     }
                 }
             }
@@ -164,6 +170,15 @@ public class WebClient : MonoBehaviour
         }else if (Input.GetKeyDown(KeyCode.Return)){
             SceneManager.LoadScene("Default");
         }
+    }
+
+    void ReplaceWall(int k, GameObject room, GameObject prefab){
+        GameObject new_object = Instantiate(prefab,room.transform);
+        Transform wall = room.transform.Find(direction[k]);
+        new_object.transform.position = wall.position;
+        new_object.transform.rotation = wall.rotation;
+        new_object.name = wall.name;
+        Destroy(wall.gameObject);
     }
 }
 
