@@ -15,11 +15,16 @@ public class WebClient : MonoBehaviour
 {
     public GameObject RoomPrefab;
     public GameObject DestroyedPrefab;
-    public GameObject DoorPrefab;
+    public GameObject DoorClosedPrefab;
+    public GameObject DoorOpenPrefab;
     public GameObject FirePrefab;
     public GameObject SmokePrefab;
+    public GameObject PoiPrefab;
+    public GameObject AgentPrefab;
     public GameObject RoomHolder;
     public GameObject FireHolder;
+    public GameObject PoiHolder;
+    public GameObject AgentHolder;
     private string[] direction = {"Up", "Right", "Down","Left"};
 
     IEnumerator getMap()
@@ -51,8 +56,10 @@ public class WebClient : MonoBehaviour
                             {
                                 Transform wall = room.transform.Find(direction[k]);
                                 wall.gameObject.SetActive(true);
-                            }else if (Convert.ToString(mapa.walls[i][j][k]) == "door" | Convert.ToString(mapa.walls[i][j][k]) == "entrance"){
-                                ReplaceWall(k, room, DoorPrefab);
+                            }else if (Convert.ToString(mapa.walls[i][j][k]) == "door"){
+                                ReplaceWall(k, room, DoorClosedPrefab);
+                            }else if (Convert.ToString(mapa.walls[i][j][k]) == "entrance"){
+                                ReplaceWall(k, room, DoorOpenPrefab);
                             }
                         }
                     }
@@ -67,9 +74,13 @@ public class WebClient : MonoBehaviour
                         }
                     }
                 }
+
+                for (int i = 0; i < mapa.poi.Length; i++)
+                {
+                    Instantiate(PoiPrefab, new Vector3(mapa.poi[i][1] * -1, 0, mapa.poi[i][0]), Quaternion.identity, FireHolder.transform);
+                }
             }
         }
-
     }
 
     IEnumerator getStep()
@@ -101,7 +112,7 @@ public class WebClient : MonoBehaviour
                         for (int j = 0; j < intersecting.Length; j++) {
                             if (intersecting[j].gameObject.name == "Room(Clone)"){
                                 Instantiate(FirePrefab, new Vector3(x, 0, z), Quaternion.Euler(-90,0,0), FireHolder.transform);
-                            }else{
+                            }else if (intersecting[j].gameObject.name == "Smoke(Clone)"){
                                 Destroy(intersecting[j].gameObject);
                             }
                         }
@@ -115,31 +126,46 @@ public class WebClient : MonoBehaviour
                             delay = true;
                         }
                         Collider[] intersecting = Physics.OverlapSphere(new Vector3(x, 0, z), 0.01f);
-                        Destroy(intersecting[0].gameObject);
-                        Instantiate(FirePrefab, new Vector3(x, 0, z), Quaternion.Euler(-90,0,0), FireHolder.transform);
+                        for (int j = 0; j < intersecting.Length; j++) {
+                            if (intersecting[j].gameObject.name == "Smoke(Clone)"){
+                                //Debug.Log("Crea fuego y destruye humo");
+                                Destroy(intersecting[j].gameObject);
+                                Instantiate(FirePrefab, new Vector3(x, 0, z), Quaternion.Euler(-90,0,0), FireHolder.transform);
+                            }
+                        }
                     }else if (resp.moves[i][0] == "door"){
-                        Collider[] intersecting = Physics.OverlapSphere(new Vector3(x, 0, z), 0.1f);
+                        Collider[] intersecting = Physics.OverlapSphere(new Vector3(x, 0, z), 0.01f);
                         for (int j = 0; j < intersecting.Length; j++) {
                             if (intersecting[j].gameObject.name == "Room(Clone)"){
                                 Transform door = intersecting[j].transform.Find(direction[int.Parse(resp.moves[i][3])]);
                                 Destroy(door.gameObject);
                             }
                         }
-                        //["door", pos[0], pos[1], direction]
                     }else if (resp.moves[i][0] == "wall"){
-                        Collider[] intersecting = Physics.OverlapSphere(new Vector3(x, 0, z), 0.1f);
+                        Collider[] intersecting = Physics.OverlapSphere(new Vector3(x, 0, z), 0.01f);
                         for (int j = 0; j < intersecting.Length; j++) {
                             if (intersecting[j].gameObject.name == "Room(Clone)"){
                                 if (int.Parse(resp.moves[i][4]) == 1){
                                     ReplaceWall(int.Parse(resp.moves[i][3]), intersecting[j].gameObject, DestroyedPrefab);
-                                }else{
+                                }else if (int.Parse(resp.moves[i][4]) == 0){
                                     Transform door = intersecting[j].transform.Find(direction[int.Parse(resp.moves[i][3])]);
                                     Destroy(door.gameObject);
                                 }
                             }
                         }
-                        // ["wall", pos[0], pos[1], direction, self.walls_grid[pos[0], pos[1]][direction]]
+                    }else if (resp.moves[i][0] == "poiD"){
+                        Debug.Log("Destruye POI en x:" + x + " z: " + z);
+                        Collider[] intersecting = Physics.OverlapSphere(new Vector3(x, 0, z), 0.01f);
+                        for (int j = 0; j < intersecting.Length; j++) {
+                            if (intersecting[j].gameObject.name == "POI(Clone)"){
+                                Destroy(intersecting[j].gameObject);
+                            }
+                        }
+                    }else if (resp.moves[i][0] == "poiC"){
+                        Debug.Log("Crea POI en x:" + x + " z: " + z);
+                        Instantiate(PoiPrefab, new Vector3(x, 0, z), Quaternion.identity, FireHolder.transform);
                     }
+                    //else if (resp.moves[i][0] == "")
                 }
             }
         }
