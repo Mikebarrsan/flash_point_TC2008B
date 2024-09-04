@@ -26,6 +26,7 @@ public class WebClient : MonoBehaviour
     public GameObject PoiHolder;
     public GameObject AgentHolder;
     private string[] direction = {"Up", "Right", "Down","Left"};
+    private bool moving = false;
 
     IEnumerator getMap()
     {
@@ -79,17 +80,23 @@ public class WebClient : MonoBehaviour
                 {
                     Instantiate(PoiPrefab, new Vector3(mapa.poi[i][1] * -1, 0, mapa.poi[i][0]), Quaternion.identity, FireHolder.transform);
                 }
+
+                for (int i = 0; i < mapa.agents.Length; i++)
+                {
+                    GameObject agente = Instantiate(AgentPrefab, new Vector3(mapa.agents[i][2] * -1, 0, mapa.agents[i][1]), Quaternion.identity, AgentHolder.transform);
+                    agente.name = mapa.agents[i][0].ToString();
+                }
             }
         }
     }
 
     IEnumerator getStep()
     {
+        moving = true;
         string url = "http://localhost:8585/step";
         using (UnityWebRequest www = UnityWebRequest.Get(url))
         {
             www.downloadHandler = new DownloadHandlerBuffer();
-            //www.SetRequestHeader("Content-Type", "text/html");
             www.SetRequestHeader("Content-Type", "application/json");
 
             yield return www.SendWebRequest();          // Talk to Python
@@ -102,6 +109,54 @@ public class WebClient : MonoBehaviour
                 Debug.Log(www.downloadHandler.text);
                 Moves resp = JsonConvert.DeserializeObject<Moves>(www.downloadHandler.text.Replace('\'', '\"'));
                 bool delay = false;
+                Transform agent = AgentHolder.transform.Find(resp.moves_agent[0][0]);
+
+                for (int i = 1; i < resp.moves_agent.Length; i++)
+                {
+                    int x = int.Parse(resp.moves_agent[i][2]) * -1;
+                    int z = int.Parse(resp.moves_agent[i][1]);
+
+                    if (resp.moves_agent[i][0] == "move"){
+                        Vector3 targetPos = new Vector3(x,0,z);
+                        Vector3 currentPos = agent.position;
+                        int rotation = 0;
+                        float magX = agent.position.x - x;
+                        float magZ = agent.position.z - z;
+                        Debug.Log(magX);
+                        Debug.Log(magZ);
+
+                        if (magX < 0 & Math.Abs(magX) > Math.Abs(magZ)){
+                            rotation = 180;
+                        }else if (magX > 0 & Math.Abs(magX) > Math.Abs(magZ)){
+                            rotation = 0;
+                        }else if (magZ > 0 & Math.Abs(magZ) > Math.Abs(magX)){
+                            rotation = -90;
+                        }else if (magZ < 0 & Math.Abs(magZ) > Math.Abs(magX)){
+                            rotation = 90;
+                        }
+
+                        float timeElapsed = 0;
+                        float timeToMove = 1;
+                        
+                        agent.rotation = Quaternion.Euler(0, rotation, 0);
+                        
+                        while(timeElapsed < timeToMove){
+                            agent.position = Vector3.Lerp(currentPos,targetPos,timeElapsed/timeToMove);
+                            timeElapsed += Time.deltaTime;
+                            yield return null;
+                        }
+                    }else if (resp.moves_agent[i][0] == "extinguish"){
+                        Collider[] intersecting = Physics.OverlapSphere(new Vector3(x, 0, z), 0.01f);
+                        for (int j = 0; j < intersecting.Length; j++) {
+                            if (intersecting[j].gameObject.name == "Fire(Clone)"){
+                                Debug.Log("Destruye fuego");
+                                Destroy(intersecting[j].gameObject);
+                            }
+                        }
+                    }
+                }
+                yield return new WaitForSeconds(1);
+
                 for (int i = 0; i < resp.moves.Length; i++)
                 {
                     int x = int.Parse(resp.moves[i][2]) * -1;
@@ -122,7 +177,7 @@ public class WebClient : MonoBehaviour
 
                     }else if (resp.moves[i][0] == "flashover"){
                         if (!delay){
-                            yield return new WaitForSeconds(2.0f);
+                            yield return new WaitForSeconds(0.5f);
                             delay = true;
                         }
                         Collider[] intersecting = Physics.OverlapSphere(new Vector3(x, 0, z), 0.01f);
@@ -165,8 +220,13 @@ public class WebClient : MonoBehaviour
                         Debug.Log("Crea POI en x:" + x + " z: " + z);
                         Instantiate(PoiPrefab, new Vector3(x, 0, z), Quaternion.identity, FireHolder.transform);
                     }
-                    //else if (resp.moves[i][0] == "")
+                    else if (resp.moves[i][0] == "teleport"){
+                        Transform selected = AgentHolder.transform.Find(resp.moves[i][3]);
+                        selected.position = new Vector3(x, 0, z);
+                    }
                 }
+                yield return new WaitForSeconds(1);
+                moving = false;
             }
         }
 
@@ -177,19 +237,12 @@ public class WebClient : MonoBehaviour
     void Start()
     {
         StartCoroutine(getMap());
-        //string call = "What's up?";
-        //Vector3 fakePos = new Vector3(3.44f, 0, -15.707f);
-        //string json = EditorJsonUtility.ToJson(fakePos);
-        //StartCoroutine(SendData(call));
-        //StartCoroutine(SendData(json));
-        // transform.localPosition
-
-        //StartCoroutine(getMap());
     }
 
     // Update is called once per frame
     void Update()
     {
+        //if (!moving)
         if (Input.GetKeyDown(KeyCode.Space))
         {
             StartCoroutine(getStep());
