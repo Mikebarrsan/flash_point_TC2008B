@@ -10,6 +10,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using Newtonsoft.Json;
 using UnityEngine.SceneManagement;
+using Unity.VisualScripting;
 
 public class WebClient : MonoBehaviour
 {
@@ -21,6 +22,7 @@ public class WebClient : MonoBehaviour
     public GameObject SmokePrefab;
     public GameObject PoiPrefab;
     public GameObject AgentPrefab;
+    public GameObject VictimPrefab;
     public GameObject RoomHolder;
     public GameObject FireHolder;
     public GameObject PoiHolder;
@@ -122,8 +124,6 @@ public class WebClient : MonoBehaviour
                         int rotation = 0;
                         float magX = agent.position.x - x;
                         float magZ = agent.position.z - z;
-                        Debug.Log(magX);
-                        Debug.Log(magZ);
 
                         if (magX < 0 & Math.Abs(magX) > Math.Abs(magZ)){
                             rotation = 180;
@@ -149,10 +149,30 @@ public class WebClient : MonoBehaviour
                         Collider[] intersecting = Physics.OverlapSphere(new Vector3(x, 0, z), 0.01f);
                         for (int j = 0; j < intersecting.Length; j++) {
                             if (intersecting[j].gameObject.name == "Fire(Clone)"){
-                                Debug.Log("Destruye fuego");
                                 Destroy(intersecting[j].gameObject);
                             }
                         }
+                    }else if (resp.moves_agent[i][0] == "victim"){
+                        Collider[] intersecting = Physics.OverlapSphere(new Vector3(x, 0, z), 0.01f);
+                        for (int j = 0; j < intersecting.Length; j++) {
+                            if (intersecting[j].gameObject.name == "POI(Clone)"){
+                                Destroy(intersecting[j].gameObject);
+                            }
+                        }
+
+                        Instantiate(VictimPrefab, agent.position, agent.rotation, agent);
+
+                    }else if (resp.moves_agent[i][0] == "false"){
+                        Collider[] intersecting = Physics.OverlapSphere(new Vector3(x, 0, z), 0.01f);
+                        for (int j = 0; j < intersecting.Length; j++) {
+                            if (intersecting[j].gameObject.name == "POI(Clone)"){
+                                Destroy(intersecting[j].gameObject);
+                            }
+                        }
+                    }else if (resp.moves_agent[i][0] == "entrance"){
+                        Debug.Log("Llegó a entrada con un POI");
+                        Transform Victim = agent.Find("Victim(Clone)");
+                        Destroy(Victim.gameObject);
                     }
                 }
                 yield return new WaitForSeconds(1);
@@ -183,7 +203,6 @@ public class WebClient : MonoBehaviour
                         Collider[] intersecting = Physics.OverlapSphere(new Vector3(x, 0, z), 0.01f);
                         for (int j = 0; j < intersecting.Length; j++) {
                             if (intersecting[j].gameObject.name == "Smoke(Clone)"){
-                                //Debug.Log("Crea fuego y destruye humo");
                                 Destroy(intersecting[j].gameObject);
                                 Instantiate(FirePrefab, new Vector3(x, 0, z), Quaternion.Euler(-90,0,0), FireHolder.transform);
                             }
@@ -209,7 +228,6 @@ public class WebClient : MonoBehaviour
                             }
                         }
                     }else if (resp.moves[i][0] == "poiD"){
-                        Debug.Log("Destruye POI en x:" + x + " z: " + z);
                         Collider[] intersecting = Physics.OverlapSphere(new Vector3(x, 0, z), 0.01f);
                         for (int j = 0; j < intersecting.Length; j++) {
                             if (intersecting[j].gameObject.name == "POI(Clone)"){
@@ -223,6 +241,10 @@ public class WebClient : MonoBehaviour
                     else if (resp.moves[i][0] == "teleport"){
                         Transform selected = AgentHolder.transform.Find(resp.moves[i][3]);
                         selected.position = new Vector3(x, 0, z);
+                        Transform Victim = agent.Find("Victim(Clone)");
+                        if (Victim != null){
+                            Destroy(Victim.gameObject);
+                        }
                     }
                 }
                 yield return new WaitForSeconds(1);
@@ -242,9 +264,8 @@ public class WebClient : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        //if (!moving)
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
+        //if (Input.GetKeyDown(KeyCode.Space)){
+        if (!moving){
             StartCoroutine(getStep());
         }else if (Input.GetKeyDown(KeyCode.Return)){
             SceneManager.LoadScene("Default");

@@ -391,7 +391,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6373188072060845226, guid: 49dd29ef2da114bd5865bc4db3129a7a, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.3
+      value: -0.48
       objectReference: {fileID: 0}
     - target: {fileID: 6373188072060845226, guid: 49dd29ef2da114bd5865bc4db3129a7a, type: 3}
       propertyPath: m_LocalPosition.z
@@ -467,6 +467,7 @@ MonoBehaviour:
   SmokePrefab: {fileID: 4083776537749039792, guid: 6c080797049e74014bbd4331715bc980, type: 3}
   PoiPrefab: {fileID: 5192338404406073686, guid: a8a78c70371a3463a9b473b0901d9d3c, type: 3}
   AgentPrefab: {fileID: 5827913333908703316, guid: e97da94d3280e48fa9eb4df8fabee0bc, type: 3}
+  VictimPrefab: {fileID: 5827913333908703316, guid: 9bead96878fe641fabc525fb1243309f, type: 3}
   RoomHolder: {fileID: 242039077}
   FireHolder: {fileID: 786097767}
   PoiHolder: {fileID: 2088517726}
